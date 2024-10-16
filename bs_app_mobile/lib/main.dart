@@ -1,13 +1,13 @@
 
 import 'package:bs_app_mobile/iu/pages/intro.dart';
-import 'package:bs_app_mobile/iu/pages/login.dart';
-import 'package:bs_app_mobile/iu/pages/sign_up.dart';
+import 'package:bs_app_mobile/services/firebase_messaging.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await FirebaseMessage().initNotifications();
   runApp(const MyApp());
 }
 

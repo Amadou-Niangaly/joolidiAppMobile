@@ -1,5 +1,8 @@
+import 'dart:convert';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 
 class DonPage extends StatefulWidget {
   const DonPage({super.key});
@@ -10,8 +13,8 @@ class DonPage extends StatefulWidget {
 
 class _DonPageState extends State<DonPage> {
   String? _selectedBloodGroup;
-  String? _selectedCentreId; // Utilise l'ID du centre
-  List<Map<String, String>> _centres = []; // Liste de maps pour les centres
+  String? _selectedCentreId;
+  List<Map<String, String>> _centres = [];
   final TextEditingController _quantiteController = TextEditingController();
 
   @override
@@ -31,7 +34,7 @@ class _DonPageState extends State<DonPage> {
       QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('centreDon').get();
       List<Map<String, String>> centresList = snapshot.docs.map((doc) {
         return {
-          'id': doc.id, // Récupère l'ID du document
+          'id': doc.id,
           'nom': doc['nom'] as String,
         };
       }).toList();
@@ -44,17 +47,34 @@ class _DonPageState extends State<DonPage> {
   }
 
   Future<void> _envoyerDon() async {
-    if (_selectedBloodGroup != null && _selectedCentreId != null) {
+    if (_selectedBloodGroup != null && _selectedCentreId != null && _quantiteController.text.isNotEmpty) {
       try {
-        await FirebaseFirestore.instance.collection('don').add({
+        // Enregistrement du don dans Firestore
+        DocumentReference docRef = await FirebaseFirestore.instance.collection('don').add({
           'groupeSanguin': _selectedBloodGroup,
-          'centreId': _selectedCentreId, // Enregistre l'ID du centre
+          'centre': _selectedCentreId,
           'quantite': _quantiteController.text,
           'date': DateTime.now(),
         });
+
+        // Récupération du token FCM pour envoyer la notification
+        String token = await FirebaseMessaging.instance.getToken() ?? '';
+        print("FCM Token: $token");
+
+        // Préparer la notification
+        await _sendNotification(token, 'Don de sang', 'Un nouveau don de sang a été faite.');
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Don envoyé avec succès !')),
         );
+
+        // Réinitialiser les champs après l'envoi
+        setState(() {
+          _selectedBloodGroup = null;
+          _selectedCentreId = null;
+          _quantiteController.clear();
+        });
+
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur lors de l\'envoi du don : $e')),
@@ -66,6 +86,30 @@ class _DonPageState extends State<DonPage> {
       );
     }
   }
+
+ Future<void> _sendNotification(String token, String title, String body) async {
+  final response = await http.post(
+    Uri.parse('http://10.0.2.2:3000/send-notification'), // Utilise 10.0.2.2 si tu utilises un émulateur Android
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: json.encode({
+      'token': token,
+      'title': title,
+      'body': body,
+    }),
+  );
+
+  print("Réponse du serveur: ${response.statusCode}");
+  print("Body: ${response.body}");
+
+  if (response.statusCode == 200) {
+    print("Notification envoyée avec succès");
+  } else {
+    print("Erreur lors de l'envoi de la notification: ${response.body}");
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -179,8 +223,8 @@ class _DonPageState extends State<DonPage> {
             value: _selectedCentreId,
             items: _centres.map((Map<String, String> centre) {
               return DropdownMenuItem<String>(
-                value: centre['id'], // Utiliser l'ID ici
-                child: Text(centre['nom']!), // Affiche le nom
+                value: centre['id'],
+                child: Text(centre['nom']!),
               );
             }).toList(),
             decoration: InputDecoration(
@@ -194,7 +238,7 @@ class _DonPageState extends State<DonPage> {
             ),
             onChanged: (String? newValue) {
               setState(() {
-                _selectedCentreId = newValue; // Stocke l'ID du centre sélectionné
+                _selectedCentreId = newValue;
               });
             },
           ),

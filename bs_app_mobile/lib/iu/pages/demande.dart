@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Assurez-vous d'importer Firestore
+import 'package:http/http.dart' as http;
 
 class DemandPage extends StatefulWidget {
   const DemandPage({super.key});
@@ -203,7 +207,6 @@ class _DemandPageState extends State<DemandPage> {
 
 Future<void> _submitRequest() async {
   if (_selectedBloodGroup == null || _quantityController.text.isEmpty) {
-    // Vérifier que le groupe sanguin et la quantité sont sélectionnés
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Veuillez sélectionner un groupe sanguin et entrer une quantité.')),
     );
@@ -211,12 +214,11 @@ Future<void> _submitRequest() async {
   }
 
   String bloodGroup = _selectedBloodGroup!;
-  int quantity = int.tryParse(_quantityController.text) ?? 0; // Utiliser `tryParse` pour éviter les exceptions
+  int quantity = int.tryParse(_quantityController.text) ?? 0;
   bool isUrgent = _isUrgent;
 
-  // Obtenir l'ID de l'utilisateur connecté
   User? user = FirebaseAuth.instance.currentUser;
-  String? userId = user?.uid; // Vérifier si l'utilisateur est connecté
+  String? userId = user?.uid;
 
   if (userId == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -226,16 +228,23 @@ Future<void> _submitRequest() async {
   }
 
   try {
-    // Envoyer la demande à Firestore avec l'ID de l'utilisateur
+    // Envoyer la demande à Firestore
     await FirebaseFirestore.instance.collection('demande').add({
       'groupeSanguin': bloodGroup,
       'quantite': quantity,
       'urgence': isUrgent,
-      'dateDemande': FieldValue.serverTimestamp(), // Ajoute la date de la demande
-      'userId': userId, // Ajoutez l'ID de l'utilisateur ici
+      'dateDemande': FieldValue.serverTimestamp(),
+      'userId': userId,
     });
+    
+      String token = await FirebaseMessaging.instance.getToken() ?? '';
+        print("FCM Token: $token");
 
-    // Afficher un message de confirmation
+     // Préparer la notification
+        await _sendNotification(token, 'Demande  de sang', 'Une nouvelle demande de sang de $quantity (poches) $bloodGroup a été faite par .');
+
+
+    
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Demande envoyée avec succès!')),
     );
@@ -253,4 +262,29 @@ Future<void> _submitRequest() async {
     );
   }
 }
+
+// Méthode pour envoyer la notification
+Future<void> _sendNotification(String token, String title, String body) async {
+  final response = await http.post(
+    Uri.parse('http://10.0.2.2:3000/send-notification'), // Utilise 10.0.2.2 si tu utilises un émulateur Android
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: json.encode({
+      'token': token,
+      'title': title,
+      'body': body,
+    }),
+  );
+
+  print("Réponse du serveur: ${response.statusCode}");
+  print("Body: ${response.body}");
+
+  if (response.statusCode == 200) {
+    print("Notification envoyée avec succès");
+  } else {
+    print("Erreur lors de l'envoi de la notification: ${response.body}");
+  }
+}
+
 }
