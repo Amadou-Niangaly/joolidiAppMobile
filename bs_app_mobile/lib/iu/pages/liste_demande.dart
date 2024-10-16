@@ -1,5 +1,6 @@
 import 'package:bs_app_mobile/iu/pages/demande_details.dart';
 import 'package:bs_app_mobile/iu/pages/search.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class ListeDemandePage extends StatelessWidget {
@@ -19,11 +20,42 @@ class ListeDemandePage extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 40),
+              // Récupérer et afficher les demandes
               const SearchSection(),
-              const SizedBox(height: 24),
-              _itemsDemande(context),
-              const SizedBox(height: 10),
-              _itemsDemande(context),
+              const SizedBox(height: 20,),
+              StreamBuilder(
+                stream: FirebaseFirestore.instance.collection('demande').snapshots(),
+                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  // Afficher les demandes dynamiquement
+                  return Column(
+                    children: snapshot.data!.docs.map((demande) {
+                      return FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance
+                            .collection('utilisateurs')
+                            .doc(demande['userId'])
+                            .get(),
+                        builder: (context, userSnapshot) {
+                          if (!userSnapshot.hasData) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+
+                          var utilisateur = userSnapshot.data!.data() as Map<String, dynamic>;
+                          String prenomDemandeur = utilisateur['prenom'] ?? 'Prenom  inconnu';
+                          String nomDemandeur = utilisateur['nom'] ?? 'Nom inconnu';  // Nom du demandeur
+                          String groupeSanguin = demande['groupeSanguin'] ?? 'Non spécifié';
+                          String statut = demande['urgence'] ? 'Urgent' : 'Attente';
+
+                          return _itemsDemande(context, nomDemandeur, groupeSanguin, statut,prenomDemandeur);
+                        },
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -31,8 +63,8 @@ class ListeDemandePage extends StatelessWidget {
     );
   }
 
-  // Modification : Ajout du paramètre context
-  Widget _itemsDemande(BuildContext context) {
+  // Affichage dynamique des demandes avec le nom du demandeur
+  Widget _itemsDemande(BuildContext context, String nomDemandeur, String groupeSanguin, String statut,String prenomDemandeur) {
     return Container(
       padding: const EdgeInsets.all(10),
       margin: const EdgeInsets.all(10),
@@ -52,14 +84,27 @@ class ListeDemandePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Nom du demandeur
-          const Text(
-            "Moussa Diaby",
-            style: TextStyle(
+          // Affichage du prenom et nom du demandeur
+          Row(
+            children: [
+               Text(
+            prenomDemandeur,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),
+          const SizedBox(width: 10,),
+               Text(
+            nomDemandeur,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+            ],
+          ),
+         
           const SizedBox(height: 10),
 
           // Ligne pour le statut et le groupe sanguin
@@ -73,27 +118,26 @@ class ListeDemandePage extends StatelessWidget {
                   color: const Color(0xFFD80032),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text(
-                  "O+",
-                  style: TextStyle(
+                child: Text(
+                  groupeSanguin,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              
               // Statut, texte "Attente" et bouton "arrow forward"
               Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.amberAccent,
+                      color: statut == 'Urgent' ? Colors.redAccent : Colors.amberAccent,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text(
-                      "Attente",
-                      style: TextStyle(
+                    child: Text(
+                      statut,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
