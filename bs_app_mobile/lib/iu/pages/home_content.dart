@@ -1,5 +1,4 @@
 import 'package:bs_app_mobile/iu/pages/centre.dart';
-import 'package:bs_app_mobile/iu/pages/centre_details.dart';
 import 'package:bs_app_mobile/iu/pages/liste_demande.dart';
 import 'package:bs_app_mobile/iu/pages/notification.dart';
 import 'package:bs_app_mobile/services/auth_service.dart';

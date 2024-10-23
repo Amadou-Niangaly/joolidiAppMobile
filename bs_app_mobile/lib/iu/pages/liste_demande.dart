@@ -3,8 +3,15 @@ import 'package:bs_app_mobile/iu/pages/search.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-class ListeDemandePage extends StatelessWidget {
+class ListeDemandePage extends StatefulWidget {
   const ListeDemandePage({super.key});
+
+  @override
+  _ListeDemandePageState createState() => _ListeDemandePageState();
+}
+
+class _ListeDemandePageState extends State<ListeDemandePage> {
+  String searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
@@ -21,22 +28,41 @@ class ListeDemandePage extends StatelessWidget {
             children: [
               const SizedBox(height: 40),
               // Récupérer et afficher les demandes
-              const SearchSection(),
-              const SizedBox(height: 20,),
-              StreamBuilder(
+              SearchSection(
+                onSearchChanged: (value) {
+                  setState(() {
+                    searchQuery = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 20),
+              StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('demande').snapshots(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
+                  // Filtrer les demandes selon la recherche
+                  var filteredDocs = snapshot.data!.docs.where((demande) {
+                    // Ici, vous pouvez filtrer en fonction du nom, du groupe sanguin, etc.
+                    var utilisateurId = demande['userId'];
+                    return demande['groupeSanguin'].toString().toLowerCase().contains(searchQuery.toLowerCase()) ||
+                           demande['quantite'].toString().contains(searchQuery) ||
+                           utilisateurId.toString().contains(searchQuery);
+                  }).toList();
+
+                  if (filteredDocs.isEmpty) {
+                    return const Center(child: Text("Aucune demande trouvée."));
+                  }
+
                   // Afficher les demandes dynamiquement
                   return Column(
-                    children: snapshot.data!.docs.map((demande) {
+                    children: filteredDocs.map((demandeData) {
                       return FutureBuilder<DocumentSnapshot>(
                         future: FirebaseFirestore.instance
                             .collection('utilisateurs')
-                            .doc(demande['userId'])
+                            .doc(demandeData['userId'])
                             .get(),
                         builder: (context, userSnapshot) {
                           if (!userSnapshot.hasData) {
@@ -44,12 +70,22 @@ class ListeDemandePage extends StatelessWidget {
                           }
 
                           var utilisateur = userSnapshot.data!.data() as Map<String, dynamic>;
-                          String prenomDemandeur = utilisateur['prenom'] ?? 'Prenom  inconnu';
-                          String nomDemandeur = utilisateur['nom'] ?? 'Nom inconnu';  // Nom du demandeur
-                          String groupeSanguin = demande['groupeSanguin'] ?? 'Non spécifié';
-                          String statut = demande['urgence'] ? 'Urgent' : 'Attente';
+                          String prenomDemandeur = utilisateur['prenom'] ?? 'Prénom inconnu';
+                          String nomDemandeur = utilisateur['nom'] ?? 'Nom inconnu';
+                          String TelDemandeur = utilisateur['telephone'] ?? 'Tel inconnu';
+                          String groupeSanguin = demandeData['groupeSanguin'] ?? 'Non spécifié';
+                          String statut = demandeData['urgence'] ? 'Urgent' : 'Attente';
 
-                          return _itemsDemande(context, nomDemandeur, groupeSanguin, statut,prenomDemandeur);
+                          return _itemsDemande(
+                            context, 
+                            nomDemandeur, 
+                            TelDemandeur,
+                            groupeSanguin, 
+                            statut, 
+                            prenomDemandeur, 
+                            utilisateur, 
+                            demandeData 
+                          );
                         },
                       );
                     }).toList(),
@@ -64,7 +100,7 @@ class ListeDemandePage extends StatelessWidget {
   }
 
   // Affichage dynamique des demandes avec le nom du demandeur
-  Widget _itemsDemande(BuildContext context, String nomDemandeur, String groupeSanguin, String statut,String prenomDemandeur) {
+  Widget _itemsDemande(BuildContext context, String nomDemandeur, String TelDemandeur, String groupeSanguin, String statut, String prenomDemandeur, Map<String, dynamic> utilisateur, DocumentSnapshot demandeData) {
     return Container(
       padding: const EdgeInsets.all(10),
       margin: const EdgeInsets.all(10),
@@ -84,27 +120,26 @@ class ListeDemandePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Affichage du prenom et nom du demandeur
+          // Affichage du prénom et nom du demandeur
           Row(
             children: [
-               Text(
-            prenomDemandeur,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(width: 10,),
-               Text(
-            nomDemandeur,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+              Text(
+                prenomDemandeur,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                nomDemandeur,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
-         
           const SizedBox(height: 10),
 
           // Ligne pour le statut et le groupe sanguin
@@ -150,7 +185,17 @@ class ListeDemandePage extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const DemandeDetaislPage()),
+                        MaterialPageRoute(
+                          builder: (context) => DemandeDetailsPage(
+                            nom: utilisateur['nom'],
+                            prenom: utilisateur['prenom'],
+                            telephone: utilisateur['numeroTelephone'],
+                            groupeSanguin: groupeSanguin,
+                            quantite: demandeData['quantite'],
+                            urgence: demandeData['urgence'],
+                            demandeId: demandeData.id,
+                          ),
+                        ),
                       );
                     },
                     icon: const Icon(Icons.arrow_forward_ios, color: Colors.black),

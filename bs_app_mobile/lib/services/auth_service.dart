@@ -8,6 +8,7 @@ class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // Inscription d'un utilisateur
   Future<User?> signUp({
     required String email,
     required String password,
@@ -25,6 +26,7 @@ class FirebaseAuthService {
 
       User? user = credential.user;
       if (user != null) {
+        // Sauvegarder les données utilisateur dans Firestore
         await _firestore.collection('utilisateurs').doc(user.uid).set({
           'nom': nom,
           'prenom': prenom,
@@ -34,11 +36,11 @@ class FirebaseAuthService {
           'dateNaissance': dateNaissance,
           'role': 'user',
           'uid': user.uid,
-          'dateInscription': FieldValue.serverTimestamp()
+          'dateInscription': FieldValue.serverTimestamp(),
         });
 
-        // Enregistrer le token FCM
-        await _saveFCMToken(user.uid); // Enregistrer le token FCM
+        // Enregistrer le token FCM après inscription
+        await _saveFCMToken(user.uid);
 
         return user;
       }
@@ -48,29 +50,24 @@ class FirebaseAuthService {
     return null;
   }
 
-  Future<void> _saveFCMToken(String userId) async {
-    String? token = await FirebaseMessaging.instance.getToken();
-    if (token != null) {
-      await _firestore.collection('utilisateurs').doc(userId).set({
-        'fcm_token': token,
-      }, SetOptions(merge: true));
-      print('Token FCM enregistré pour l\'utilisateur: $userId');
+  // Méthode pour récupérer et enregistrer le token FCM dans Firestore
+  Future<void> _saveFCMToken(String uid) async {
+    try {
+      String? token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        print("Token FCM récupéré : $token");
+        await _firestore.collection('utilisateurs').doc(uid).set({
+          'fcm_token': token,
+        }, SetOptions(merge: true));  // Fusionner pour éviter d'écraser les autres données
+        print('Token FCM enregistré pour l\'utilisateur: $uid');
+      }
+    } catch (e) {
+      print('Erreur lors de l\'enregistrement du token FCM : $e');
     }
   }
 
-  Future<void> updateToken(String userId, String token) async {
-  try {
-    await _firestore.collection('utilisateurs').doc(userId).update({
-      'fcmToken': token, // Ajoutez ce champ à votre document utilisateur
-    });
-    print("Token FCM mis à jour avec succès.");
-  } catch (e) {
-    print("Erreur lors de la mise à jour du token FCM : $e");
-  }
-}
-
-
-Future<User?> signInWithEmailAndPassword(String email, String password) async {
+  // Connexion d'un utilisateur avec son email et mot de passe
+  Future<User?> signInWithEmailAndPassword(String email, String password) async {
   try {
     UserCredential credential = await _auth.signInWithEmailAndPassword(
       email: email,
@@ -79,21 +76,32 @@ Future<User?> signInWithEmailAndPassword(String email, String password) async {
 
     User? user = credential.user;
     if (user != null) {
-      // Obtenez le token FCM
-      String? token = await FirebaseMessaging.instance.getToken();
-      if (token != null) {
-        // Mettez à jour le token dans Firestore
-        await updateToken(user.uid, token);
+      // Récupérer le token FCM actuel de l'appareil
+      String? newToken = await FirebaseMessaging.instance.getToken();
+
+      // Récupérer l'ancien token FCM enregistré dans Firestore
+      DocumentSnapshot doc = await _firestore.collection('utilisateurs').doc(user.uid).get();
+      String? oldToken = doc.get('fcm_token');
+
+      if (newToken != null && newToken != oldToken) {
+        // Si le nouveau token est différent de l'ancien ou n'existe pas, on le met à jour
+        await _firestore.collection('utilisateurs').doc(user.uid).set({
+          'fcm_token': newToken,
+        }, SetOptions(merge: true)); // Fusionner pour éviter d'écraser les autres données
+        print("Token FCM mis à jour pour l'utilisateur: ${user.uid}.");
+      } else {
+        print("Le token FCM n'a pas changé.");
       }
     }
 
     return user;
   } catch (e) {
     print("Une erreur est survenue lors de la connexion : $e");
+    return null;
   }
-  return null;
 }
 
+  // Déconnexion de l'utilisateur
   Future<void> signOut(BuildContext context) async {
     try {
       await _auth.signOut();
@@ -107,6 +115,7 @@ Future<User?> signInWithEmailAndPassword(String email, String password) async {
     }
   }
 
+  // Récupérer les informations de l'utilisateur actuellement connecté
   Future<Map<String, dynamic>?> getUserInfo() async {
     try {
       User? user = _auth.currentUser;

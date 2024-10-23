@@ -1,29 +1,32 @@
 import 'package:flutter/material.dart';
 
 class SearchSection extends StatelessWidget {
-  const SearchSection({super.key});
+  final Function(String) onSearchChanged; // Ajoutez le paramètre ici
+
+  const SearchSection({super.key, required this.onSearchChanged});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              decoration: BoxDecoration(
-                color: Theme.of(context).hintColor,
-                borderRadius: BorderRadius.circular(20.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).hintColor,
+        borderRadius: BorderRadius.circular(20.0),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              onChanged: onSearchChanged, // Ajoutez cette ligne
+              decoration: InputDecoration(
+                hintText: 'Rechercher',
+                border: InputBorder.none,
               ),
-              child: const Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Rechercher',
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                  Icon(Icons.search),
-                ],
-              ),
+            ),
+          ),
+          const Icon(Icons.search),
+        ],
+      ),
     );
   }
-  }
+}

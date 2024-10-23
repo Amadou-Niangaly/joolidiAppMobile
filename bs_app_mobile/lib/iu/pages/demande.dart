@@ -1,9 +1,8 @@
-import 'dart:convert';
+
+import 'package:bs_app_mobile/services/firebase_messaging.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Assurez-vous d'importer Firestore
-import 'package:http/http.dart' as http;
 
 class DemandPage extends StatefulWidget {
   const DemandPage({super.key});
@@ -204,65 +203,108 @@ class _DemandPageState extends State<DemandPage> {
     );
   }
 
-  Future<void> _submitRequest() async {
-    if (_selectedBloodGroup == null || _quantityController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez sélectionner un groupe sanguin et entrer une quantité.')),
-      );
-      return;
-    }
-
-    String bloodGroup = _selectedBloodGroup!;
-    int quantity = int.tryParse(_quantityController.text) ?? 0;
-    bool isUrgent = _isUrgent;
-
-    User? user = FirebaseAuth.instance.currentUser;
-    String? userId = user?.uid;
-
-    if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Utilisateur non connecté.')),
-      );
-      return;
-    }
-
-    try {
-      // Envoyer la demande à Firestore
-      await FirebaseFirestore.instance.collection('demande').add({
-        'groupeSanguin': bloodGroup,
-        'quantite': quantity,
-        'urgence': isUrgent,
-        'dateDemande': FieldValue.serverTimestamp(),
-        'userId': userId,
-      });
-
-      // Récupérer tous les tokens
-      List<String> tokens = await getAllTokens();
-      print("Tokens: $tokens");
-
-      // Préparer le message pour la notification
-      String message = 'Une nouvelle demande de sang de $quantity (poches) $bloodGroup a été faite par $userId.';
-
-      // Envoyer la notification à tous les utilisateurs
-      await _sendNotificationToTokens(tokens, 'Demande de Sang', message);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Demande envoyée avec succès!')),
-      );
-
-      // Réinitialiser les champs
-      setState(() {
-        _selectedBloodGroup = null;
-        _quantityController.clear();
-        _isUrgent = false;
-      });
-    } catch (e) {
-      print("Une erreur est survenue lors de l'envoi de la demande : $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de l\'envoi de la demande : $e')),
-      );
-    }
+  Future<void> _storeNotification(String title, String body, String userId, int quantity, String bloodGroup) async {
+  try {
+    await FirebaseFirestore.instance.collection('notifications').add({
+      'title': title,
+      'body': body,
+      'userId': userId,
+      'quantity': quantity,
+      'bloodGroup': bloodGroup,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+    print("Enregistrement de la notification avec les données : $title, $body, $userId, $quantity, $bloodGroup");
+    print("Notification stockée avec succès !");
+  } catch (e) {
+    print("Erreur lors du stockage de la notification : $e");
   }
+}
+
+  Future<void> _submitRequest() async {
+  // Vérifier si le groupe sanguin et la quantité sont sélectionnés
+  if (_selectedBloodGroup == null || _quantityController.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Veuillez sélectionner un groupe sanguin et entrer une quantité.')),
+    );
+    return;
+  }
+
+  String bloodGroup = _selectedBloodGroup!;
+  int quantity = int.tryParse(_quantityController.text) ?? 0;
+  bool isUrgent = _isUrgent;
+
+  User? user = FirebaseAuth.instance.currentUser;
+  String? userId = user?.uid;
+
+  // Vérifier si l'utilisateur est connecté
+  if (userId == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Utilisateur non connecté.')),
+    );
+    return;
+  }
+
+  // Indiquer le chargement
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Envoi de la demande...')),
+  );
+
+  try {
+    // Récupérer les informations de l'utilisateur (prénom et nom)
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('utilisateurs').doc(userId).get();
+    var userData = userDoc.data() as Map<String, dynamic>?;
+
+    // Vérifier que les données de l'utilisateur existent
+    if (userData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors de la récupération des informations de l\'utilisateur.')),
+      );
+      return;
+    }
+
+    String userName = "${userData['prenom']} ${userData['nom']}"; // Concaténer le prénom et le nom
+
+    // Envoyer la demande à Firestore
+    DocumentReference requestDoc = await FirebaseFirestore.instance.collection('demande').add({
+      'groupeSanguin': bloodGroup,
+      'quantite': quantity,
+      'urgence': isUrgent,
+      'dateDemande': FieldValue.serverTimestamp(),
+      'userId': userId,
+    });
+
+    // Récupérer tous les tokens
+    List<String> tokens = await getAllTokens();
+    print("Tokens: $tokens");
+
+    // Préparer le message pour la notification
+    String message = 'Une nouvelle demande de sang de $quantity (poches) $bloodGroup a été faite par $userName.';
+
+    // Envoyer la notification à tous les utilisateurs
+    await _sendNotificationToTokens(tokens, 'Demande de Sang', message);
+
+    // Stocker la notification dans Firestore
+    await _storeNotification('Demande de Sang', message, userId, quantity, bloodGroup);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Demande envoyée avec succès!')),
+    );
+
+    // Réinitialiser les champs
+    setState(() {
+      _selectedBloodGroup = null;
+      _quantityController.clear();
+      _isUrgent = false;
+    });
+  } catch (e) {
+    print("Une erreur est survenue lors de l'envoi de la demande : $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erreur lors de l\'envoi de la demande : $e')),
+    );
+  }
+}
+
+
 
   // Méthode pour récupérer tous les tokens FCM
 Future<List<String>> getAllTokens() async {
@@ -283,25 +325,18 @@ Future<List<String>> getAllTokens() async {
 
 Future<void> _sendNotificationToTokens(List<String> tokens, String title, String body) async {
   for (String token in tokens) {
-    final response = await http.post(
-      Uri.parse('http://10.0.2.2:3000/send-notification'), // Remplacez par l'URL de votre serveur
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'token': token,
-        'title': title,
-        'body': body,
-      }),
-    );
-
-    if (response.statusCode == 200) {
+    try {
+      await FirebaseMessage.sendNotification(
+        title: title,
+        body: body,
+        token: token,
+        contextType: 'demande', // Type de contexte personnalisé
+        contextData: 'some_id', // Les données contextuelles à envoyer (par exemple, l'ID de la demande)
+      );
       print('Notification envoyée à $token');
-    } else {
-      print('Erreur lors de l\'envoi de la notification à $token: ${response.body}');
+    } catch (e) {
+      print('Erreur lors de l\'envoi de la notification à $token: $e');
     }
   }
 }
-
-
 }

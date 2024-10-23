@@ -1,8 +1,8 @@
-import 'dart:convert';
-import 'package:firebase_messaging/firebase_messaging.dart';
+
+import 'package:bs_app_mobile/services/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart'; // Importer Firebase Auth
 
 class DonPage extends StatefulWidget {
   const DonPage({super.key});
@@ -46,70 +46,89 @@ class _DonPageState extends State<DonPage> {
     }
   }
 
-  Future<void> _envoyerDon() async {
-    if (_selectedBloodGroup != null && _selectedCentreId != null && _quantiteController.text.isNotEmpty) {
-      try {
-        // Enregistrement du don dans Firestore
-        DocumentReference docRef = await FirebaseFirestore.instance.collection('don').add({
-          'groupeSanguin': _selectedBloodGroup,
-          'centre': _selectedCentreId,
-          'quantite': _quantiteController.text,
-          'date': DateTime.now(),
-        });
-
-        // Récupération du token FCM pour envoyer la notification
-        String token = await FirebaseMessaging.instance.getToken() ?? '';
-        print("FCM Token: $token");
-
-        // Préparer la notification
-        await _sendNotification(token, 'Don de sang', 'Un nouveau don de sang a été faite.');
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Don envoyé avec succès !')),
-        );
-
-        // Réinitialiser les champs après l'envoi
-        setState(() {
-          _selectedBloodGroup = null;
-          _selectedCentreId = null;
-          _quantiteController.clear();
-        });
-
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de l\'envoi du don : $e')),
-        );
+ Future<void> _envoyerDon() async {
+  if (_selectedBloodGroup != null && _selectedCentreId != null && _quantiteController.text.isNotEmpty) {
+    try {
+      // Obtenir l'utilisateur connecté
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception("Aucun utilisateur connecté.");
       }
-    } else {
+      String userId = currentUser.uid;
+
+      // Enregistrement du don dans Firestore avec l'UID de l'utilisateur
+      DocumentReference docRef = await FirebaseFirestore.instance.collection('don').add({
+        'groupeSanguin': _selectedBloodGroup,
+        'centre': _selectedCentreId,
+        'quantite': _quantiteController.text,
+        'date': DateTime.now(),
+        'userId': userId, // Enregistrement de l'UID de l'utilisateur
+      });
+
+      // Récupérer tous les tokens
+      List<String> tokens = await getAllTokens();
+      print("Tokens: $tokens");
+
+      // Préparer le message pour la notification
+      String message = 'Un don de sang est demandé .';
+
+      // Envoyer la notification à tous les utilisateurs
+      await _sendNotificationToTokens(tokens, 'Demande de Sang', message);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Veuillez remplir tous les champs.')),
+        SnackBar(content: Text('Don envoyé avec succès !')),
+      );
+
+      // Réinitialiser les champs après l'envoi
+      setState(() {
+        _selectedBloodGroup = null;
+        _selectedCentreId = null;
+        _quantiteController.clear();
+      });
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de l\'envoi du don : $e')),
       );
     }
-  }
-
- Future<void> _sendNotification(String token, String title, String body) async {
-  final response = await http.post(
-    Uri.parse('http://10.0.2.2:3000/send-notification'), // Utilise 10.0.2.2 si tu utilises un émulateur Android
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: json.encode({
-      'token': token,
-      'title': title,
-      'body': body,
-    }),
-  );
-
-  print("Réponse du serveur: ${response.statusCode}");
-  print("Body: ${response.body}");
-
-  if (response.statusCode == 200) {
-    print("Notification envoyée avec succès");
   } else {
-    print("Erreur lors de l'envoi de la notification: ${response.body}");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Veuillez remplir tous les champs.')),
+    );
   }
 }
+    // Méthode pour récupérer tous les tokens FCM
+Future<List<String>> getAllTokens() async {
+  List<String> tokens = [];
+  try {
+    QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('utilisateurs').get();
+    for (var doc in snapshot.docs) {
+      var data = doc.data() as Map<String, dynamic>?; // Assurez-vous que data est de type Map
+      if (data != null && data['fcm_token'] != null && data['fcm_token'].isNotEmpty) {
+        tokens.add(data['fcm_token']);
+      }
+    }
+  } catch (e) {
+    print("Erreur lors de la récupération des tokens : $e");
+  }
+  return tokens;
+}
 
+Future<void> _sendNotificationToTokens(List<String> tokens, String title, String body) async {
+  for (String token in tokens) {
+    try {
+      await  FirebaseMessage.sendNotification(
+        title: title,
+        body: body,
+        token: token,
+        contextType: 'demande', // Type de contexte personnalisé
+        contextData: 'some_id', // Les données contextuelles à envoyer (par exemple, l'ID de la demande)
+      );
+      print('Notification envoyée à $token');
+    } catch (e) {
+      print('Erreur lors de l\'envoi de la notification à $token: $e');
+    }
+  }
+}
 
   @override
   Widget build(BuildContext context) {

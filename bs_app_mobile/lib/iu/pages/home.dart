@@ -1,7 +1,8 @@
 import 'package:bs_app_mobile/iu/pages/demande.dart';
 import 'package:bs_app_mobile/iu/pages/don.dart';
 import 'package:bs_app_mobile/iu/pages/home_content.dart';
-import 'package:bs_app_mobile/iu/pages/localisation.dart';
+import 'package:bs_app_mobile/iu/pages/list_centre.dart';
+
 import 'package:bs_app_mobile/iu/pages/notification.dart';
 import 'package:bs_app_mobile/iu/pages/profil.dart';
 import 'package:flutter/material.dart';
@@ -17,9 +18,9 @@ class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   final List<Widget> pages = [
     const HomePageContent(),
-    DonPage(),
+    const DonPage(),
     const DemandPage(),
-    const LocalsPage(),
+    const ListCentrePage(),
     const ProfPage(),
   ];
 
@@ -41,7 +42,7 @@ class _HomePageState extends State<HomePage> {
             onPressed: (){
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context)=>const NotificationPage())
+                MaterialPageRoute(builder: (context)=> const NotificationPage())
                  );
             }, 
             icon: const Icon(Icons.notifications))
