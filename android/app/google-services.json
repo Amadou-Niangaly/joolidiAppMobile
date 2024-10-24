@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "549004100569",
+    "project_id": "banque-sang-8dc2b",
+    "storage_bucket": "banque-sang-8dc2b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:549004100569:android:b824aafbd33addeda18fc8",
+        "android_client_info": {
+          "package_name": "com.example.bs_app_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQkeFVD_BHJIomXfwVuc32yydYwytLS-0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
