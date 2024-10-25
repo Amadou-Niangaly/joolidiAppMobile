@@ -1,6 +1,8 @@
+ // Importez votre AuthService
 import 'package:bs_app_mobile/services/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Assurez-vous d'importer FirebaseAuth
 
 class DemandeDetailsPage extends StatelessWidget {
   final String? nom;
@@ -9,9 +11,8 @@ class DemandeDetailsPage extends StatelessWidget {
   final String? groupeSanguin;
   final int? quantite;
   final bool? urgence;
-  final String demandeId; // Ajout de l'ID de la demande
+  final String demandeId; // ID de la demande
 
-  // Constructeur avec l'ID de la demande
   const DemandeDetailsPage({
     super.key,
     this.nom,
@@ -20,7 +21,7 @@ class DemandeDetailsPage extends StatelessWidget {
     this.groupeSanguin,
     this.quantite,
     this.urgence,
-    required this.demandeId, // Assure-toi de passer l'ID de la demande
+    required this.demandeId,
   });
 
   @override
@@ -38,10 +39,8 @@ class DemandeDetailsPage extends StatelessWidget {
             const SizedBox(height: 40),
             _detailsItems(),
             const SizedBox(height: 20),
-            // Bouton Accepter
             ElevatedButton(
               onPressed: () async {
-                // Afficher la boîte de dialogue de confirmation
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
@@ -53,7 +52,6 @@ class DemandeDetailsPage extends StatelessWidget {
                       actions: [
                         TextButton(
                           onPressed: () {
-                            // Fermer la boîte de dialogue sans accepter
                             Navigator.of(context).pop();
                           },
                           child: const Text(
@@ -63,43 +61,60 @@ class DemandeDetailsPage extends StatelessWidget {
                         ),
                         ElevatedButton(
                           onPressed: () async {
-                            // Fermer la boîte de dialogue
                             Navigator.of(context).pop();
 
-                            // Récupérer le token FCM du demandeur et son userId
-                            Map<String, String?> demandeurData = await getDemandeurTokenAndId(demandeId);
-                            String? demandeurToken = demandeurData['fcm_token'];
-                            String? demandeurId = demandeurData['userId'];
+                            // Récupérer l'UID de l'utilisateur actuel
+                            String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+                            if (currentUserId != null) {
+                              // Récupérer les détails de l'utilisateur actuel
+                              DocumentSnapshot currentUserSnapshot = await FirebaseFirestore.instance
+                                  .collection('utilisateurs')
+                                  .doc(currentUserId)
+                                  .get();
+                              
+                              var currentUserData = currentUserSnapshot.data() as Map<String, dynamic>?;
 
-                            if (demandeurToken != null && demandeurId != null) {
-                              // Envoyer la notification au demandeur
-                              await _sendNotificationToDemandeur(
-                                demandeurToken,
-                                "Demande acceptée",
-                                "$prenom $nom a accepté votre demande. Contactez-le au $telephone. Groupe sanguin: $groupeSanguin",
-                              );
+                              // Vérifiez si les données de l'utilisateur actuel sont disponibles
+                              if (currentUserData != null) {
+                                String? currentNom = currentUserData['nom'];
+                                String? currentPrenom = currentUserData['prenom'];
+                                String? currentTelephone = currentUserData['numeroTelephone'];
+                                String? currentGroupeSanguin = currentUserData['groupeSanguin'];
 
-                              // Stocker la notification dans Firestore
-                              await _storeNotification(
-                                demandeId,
-                                "Demande acceptée",
-                                "$prenom $nom a accepté votre demande. Contactez-le au $telephone. Groupe sanguin est: $groupeSanguin ",
-                                demandeurToken,
-                                demandeurId, // Passer le userId ici
-                              );
+                                // Récupérer le token FCM du demandeur et son userId
+                                Map<String, String?> demandeurData = await getDemandeurTokenAndId(demandeId);
+                                String? demandeurToken = demandeurData['fcm_token'];
+                                String? demandeurId = demandeurData['userId'];
 
-                              // Vérifier si le widget est toujours monté avant d'afficher le SnackBar
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Demande acceptée et notification envoyée')),
-                                );
-                              }
-                            } else {
-                              // Vérifier si le widget est toujours monté avant d'afficher le SnackBar
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Erreur : impossible de récupérer le token ou l\'ID du demandeur')),
-                                );
+                                if (demandeurToken != null && demandeurId != null) {
+                                  // Envoyer la notification au demandeur
+                                  await _sendNotificationToDemandeur(
+                                    demandeurToken,
+                                    "Demande acceptée",
+                                    "$currentPrenom $currentNom a accepté votre demande. Contactez-le au $currentTelephone. Groupe sanguin: $currentGroupeSanguin",
+                                  );
+
+                                  // Stocker la notification dans Firestore
+                                  await _storeNotification(
+                                    demandeId,
+                                    "Demande acceptée",
+                                    "$currentPrenom $currentNom a accepté votre demande. Contactez-le au $currentTelephone. Groupe sanguin: $currentGroupeSanguin",
+                                    demandeurToken,
+                                    demandeurId, // Passer le userId ici
+                                  );
+
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Demande acceptée et notification envoyée')),
+                                    );
+                                  }
+                                } else {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Erreur : impossible de récupérer le token ou l\'ID du demandeur')),
+                                    );
+                                  }
+                                }
                               }
                             }
                           },
@@ -186,7 +201,6 @@ class DemandeDetailsPage extends StatelessWidget {
     );
   }
 
-  // Méthode pour récupérer le token FCM et l'ID du demandeur
   Future<Map<String, String?>> getDemandeurTokenAndId(String demandeId) async {
     try {
       DocumentSnapshot demandeSnapshot = await FirebaseFirestore.instance
@@ -197,7 +211,6 @@ class DemandeDetailsPage extends StatelessWidget {
       var data = demandeSnapshot.data() as Map<String, dynamic>?;
 
       if (data != null && data['userId'] != null) {
-        // Récupérer l'utilisateur en utilisant userId
         DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
             .collection('utilisateurs')
             .doc(data['userId'])
@@ -205,18 +218,17 @@ class DemandeDetailsPage extends StatelessWidget {
 
         var userData = userSnapshot.data() as Map<String, dynamic>?;
 
-        // Vérifie si le token FCM existe
         if (userData != null && userData['fcm_token'] != null) {
           return {
             'fcm_token': userData['fcm_token'] as String?,
-            'userId': data['userId'] as String?, // Retourne le userId de l'utilisateur
+            'userId': data['userId'] as String?,
           };
         }
       }
     } catch (e) {
       print("Erreur lors de la récupération du token et de l'ID du demandeur : $e");
     }
-    return {'fcm_token': null, 'userId': null}; // Retourne null si le token ou l'ID n'existe pas
+    return {'fcm_token': null, 'userId': null};
   }
 
   Future<void> _sendNotificationToDemandeur(String demandeurToken, String title, String body) async {
@@ -225,8 +237,8 @@ class DemandeDetailsPage extends StatelessWidget {
         title: title,
         body: body,
         token: demandeurToken,
-        contextType: 'demande', // Type de contexte personnalisé
-        contextData: demandeId, // ID de la demande
+        contextType: 'demande',
+        contextData: demandeId,
       );
       print('Notification envoyée au demandeur avec succès');
     } catch (e) {
@@ -234,7 +246,6 @@ class DemandeDetailsPage extends StatelessWidget {
     }
   }
 
-  // Méthode pour stocker la notification dans Firestore
   Future<void> _storeNotification(String demandeId, String title, String body, String demandeurToken, String demandeurId) async {
     try {
       await FirebaseFirestore.instance.collection('notifications').add({
@@ -242,7 +253,7 @@ class DemandeDetailsPage extends StatelessWidget {
         'title': title,
         'body': body,
         'demandeurToken': demandeurToken,
-        'userId': demandeurId, // Stocker le userId du demandeur ici
+        'userId': demandeurId,
         'timestamp': FieldValue.serverTimestamp(),
       });
       print('Notification stockée avec succès dans Firestore');

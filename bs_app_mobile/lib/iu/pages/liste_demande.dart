@@ -52,6 +52,21 @@ class _ListeDemandePageState extends State<ListeDemandePage> {
                            utilisateurId.toString().contains(searchQuery);
                   }).toList();
 
+                  // Trier les demandes par dateDemande (plus récent en haut)
+                  filteredDocs.sort((a, b) {
+                    var dateA = a['dateDemande'];
+                    var dateB = b['dateDemande'];
+
+                    // Vérifiez le type de date
+                    if (dateA is Timestamp && dateB is Timestamp) {
+                      return dateB.seconds.compareTo(dateA.seconds); // Tri décroissant
+                    } else if (dateA is String && dateB is String) {
+                      // Optionnel : gérer les dates sous forme de chaîne
+                      return DateTime.parse(dateB).compareTo(DateTime.parse(dateA)); // Tri décroissant
+                    }
+                    return 0; // Si les deux dates ne sont pas comparables, ne changez rien
+                  });
+
                   if (filteredDocs.isEmpty) {
                     return const Center(child: Text("Aucune demande trouvée."));
                   }
@@ -72,7 +87,7 @@ class _ListeDemandePageState extends State<ListeDemandePage> {
                           var utilisateur = userSnapshot.data!.data() as Map<String, dynamic>;
                           String prenomDemandeur = utilisateur['prenom'] ?? 'Prénom inconnu';
                           String nomDemandeur = utilisateur['nom'] ?? 'Nom inconnu';
-                          String TelDemandeur = utilisateur['telephone'] ?? 'Tel inconnu';
+                          String TelDemandeur = utilisateur['numeroTelephone'] ?? 'Tel inconnu';
                           String groupeSanguin = demandeData['groupeSanguin'] ?? 'Non spécifié';
                           String statut = demandeData['urgence'] ? 'Urgent' : 'Attente';
 
