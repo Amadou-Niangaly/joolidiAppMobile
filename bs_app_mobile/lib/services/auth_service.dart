@@ -61,13 +61,23 @@ class FirebaseAuthService {
         }, SetOptions(merge: true));  // Fusionner pour éviter d'écraser les autres données
         print('Token FCM enregistré pour l\'utilisateur: $uid');
       }
+
+      // Écouter les mises à jour du token FCM
+      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+        await _firestore.collection('utilisateurs').doc(uid).set({
+          'fcm_token': newToken,
+        }, SetOptions(merge: true));
+        print("Token FCM mis à jour via onTokenRefresh pour l'utilisateur: $uid");
+      });
     } catch (e) {
       print('Erreur lors de l\'enregistrement du token FCM : $e');
     }
   }
 
   // Connexion d'un utilisateur avec son email et mot de passe
-  Future<User?> signInWithEmailAndPassword(String email, String password) async {
+Future<User?> signInWithEmailAndPassword(String email, String password) async {
+  print("Tentative de connexion avec l'email : $email"); // Ajoutez ce print
+
   try {
     UserCredential credential = await _auth.signInWithEmailAndPassword(
       email: email,
@@ -76,22 +86,26 @@ class FirebaseAuthService {
 
     User? user = credential.user;
     if (user != null) {
+      print("Utilisateur connecté : ${user.uid}"); // Ajoutez ce print
+
       // Récupérer le token FCM actuel de l'appareil
       String? newToken = await FirebaseMessaging.instance.getToken();
+      print("Nouveau token FCM : $newToken"); // Ajoutez ce print
 
       // Récupérer l'ancien token FCM enregistré dans Firestore
       DocumentSnapshot doc = await _firestore.collection('utilisateurs').doc(user.uid).get();
       String? oldToken = doc.get('fcm_token');
 
       if (newToken != null && newToken != oldToken) {
-        // Si le nouveau token est différent de l'ancien ou n'existe pas, on le met à jour
         await _firestore.collection('utilisateurs').doc(user.uid).set({
           'fcm_token': newToken,
-        }, SetOptions(merge: true)); // Fusionner pour éviter d'écraser les autres données
+        }, SetOptions(merge: true));
         print("Token FCM mis à jour pour l'utilisateur: ${user.uid}.");
       } else {
-        print("Le token FCM n'a pas changé.");
+        print("Le token FCM n'a pas changé ou est nul.");
       }
+    } else {
+      print("Aucun utilisateur connecté.");
     }
 
     return user;
@@ -100,6 +114,8 @@ class FirebaseAuthService {
     return null;
   }
 }
+
+
 
   // Déconnexion de l'utilisateur
   Future<void> signOut(BuildContext context) async {

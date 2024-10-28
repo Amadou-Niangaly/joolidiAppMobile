@@ -1,4 +1,5 @@
 import 'package:bs_app_mobile/iu/pages/home.dart';
+import 'package:bs_app_mobile/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -78,7 +79,10 @@ class _LoginPageState extends State<LoginPage> {
         ),
         const SizedBox(height: 20),
         ElevatedButton(
-          onPressed: _login,
+          onPressed: () {
+            _login();
+          },
+             // Navigate to the home page
           child: const Text(
             "Login",
             style: TextStyle(fontSize: 20, color: Color(0xFFFFFFFF)),
@@ -95,10 +99,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _login() async {
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+      FirebaseAuthService().signInWithEmailAndPassword(_emailController.text.trim(),_passwordController.text.trim());
       // Navigate to the home page
       Navigator.pushReplacement(
         context,
