@@ -1,5 +1,9 @@
 import 'package:bs_app_mobile/iu/pages/centre.dart';
+import 'package:bs_app_mobile/iu/pages/historique_demande.dart';
+import 'package:bs_app_mobile/iu/pages/historique_don.dart';
+import 'package:bs_app_mobile/iu/pages/list_centre.dart';
 import 'package:bs_app_mobile/iu/pages/liste_demande.dart';
+import 'package:bs_app_mobile/iu/pages/localisation.dart';
 import 'package:bs_app_mobile/iu/pages/notification.dart';
 import 'package:bs_app_mobile/services/auth_service.dart';
 import 'package:flutter/material.dart';
@@ -135,7 +139,7 @@ class HomePageContent extends StatelessWidget {
             // Naviguer vers la page des centres
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const CentrePage ()),
+              MaterialPageRoute(builder: (context) => const ListCentrePage()),
             );
           },
         ),
@@ -192,7 +196,7 @@ class HomePageContent extends StatelessWidget {
             // Naviguer vers la première page d'urgence
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const NotificationPage()),
+              MaterialPageRoute(builder: (context) => const HistoriqueDonPage()),
             );
           },
         ),
@@ -203,7 +207,7 @@ class HomePageContent extends StatelessWidget {
             // Naviguer vers la page des centres
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const NotificationPage()),
+              MaterialPageRoute(builder: (context) => const HistoriqueDemandePage()),
             );
           },
         ),

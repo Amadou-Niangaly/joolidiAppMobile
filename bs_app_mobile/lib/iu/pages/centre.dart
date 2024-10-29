@@ -1,3 +1,4 @@
+import 'package:bs_app_mobile/iu/pages/list_centre.dart';
 import 'package:flutter/material.dart';
 
 class CentrePage extends StatelessWidget {
@@ -8,7 +9,15 @@ class CentrePage extends StatelessWidget {
  return Scaffold(
       appBar: AppBar(
         title: const Center(
-          child:  Text("les centres"),
+          child:Text("centre"),
+        ),
+      ),
+      body:  const SingleChildScrollView(
+        padding: EdgeInsets.all(10),
+        child: Column(
+          children: [
+            ListCentrePage()
+          ],
         ),
       ),
 
