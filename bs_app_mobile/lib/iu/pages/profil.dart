@@ -1,6 +1,6 @@
+import 'package:bs_app_mobile/iu/pages/edit_profil.dart';
 import 'package:bs_app_mobile/services/auth_service.dart';
 import 'package:flutter/material.dart';
-
 
 class ProfPage extends StatefulWidget {
   const ProfPage({super.key});
@@ -27,8 +27,7 @@ class _ProfPageState extends State<ProfPage> {
   }
 
   Future<void> _logout() async {
-    await authService.signOut(context); // Assurez-vous d'avoir une méthode de déconnexion dans votre service
-    // Vous pouvez ajouter une redirection ou une notification ici après la déconnexion
+    await authService.signOut(context);
   }
 
   @override
@@ -46,48 +45,62 @@ class _ProfPageState extends State<ProfPage> {
                   : Column(
                       children: [
                         const SizedBox(height: 16),
-                        Text(
-                          "${userInfo!['nom']} ${userInfo!['prenom']}", // Remplacez par le nom de l'utilisateur connecté
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "${userInfo!['nom']} ${userInfo!['prenom']}",
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.grey),
+                              onPressed: () {
+                                // Naviguer vers la page d'édition de profil
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const EditProfilPage(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                         _buildInfoRow(
                           context,
                           Icons.email,
                           "Email",
-                          userInfo!['email'], // Email de l'utilisateur connecté
+                          userInfo!['email'],
                         ),
                         _buildInfoRow(
                           context,
                           Icons.phone,
                           "Téléphone",
-                          userInfo!['numeroTelephone'], // Numéro de téléphone de l'utilisateur connecté
+                          userInfo!['numeroTelephone'],
                         ),
                         _buildInfoRow(
                           context,
                           Icons.cake,
                           "Date de naissance",
-                          userInfo!['dateNaissance'], // Date de naissance de l'utilisateur
+                          userInfo!['dateNaissance'],
                         ),
                         _buildInfoRow(
                           context,
                           Icons.bloodtype,
                           "Groupe sanguin",
-                          userInfo!['groupeSanguin'], // Groupe sanguin de l'utilisateur connecté
+                          userInfo!['groupeSanguin'],
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton.icon(
-                          onPressed: _logout, 
+                          onPressed: _logout,
                           icon: const Icon(Icons.logout_sharp, color: Color(0xFFFFFFFF)),
                           label: const Text(
                             "Deconnexion",
-                            style: TextStyle(
-                              fontSize: 20,
-                              color: Color(0xFFFFFFFF),
-                            ),
+                            style: TextStyle(fontSize: 20, color: Color(0xFFFFFFFF)),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(context).primaryColor,
@@ -103,7 +116,6 @@ class _ProfPageState extends State<ProfPage> {
     );
   }
 
-  // Widget pour afficher une ligne d'information
   Widget _buildInfoRow(BuildContext context, IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -178,3 +190,5 @@ class _TopPortion extends StatelessWidget {
     );
   }
 }
+
+

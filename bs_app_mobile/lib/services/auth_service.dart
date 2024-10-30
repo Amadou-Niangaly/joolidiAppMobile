@@ -73,6 +73,45 @@ class FirebaseAuthService {
       print('Erreur lors de l\'enregistrement du token FCM : $e');
     }
   }
+    // Returns the ID of the currently logged-in user, or null if no user is logged in
+  String? getCurrentUserId() {
+    User? user = _auth.currentUser;
+    return user?.uid;
+  }
+
+  // Allows the user to update their password
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      User? user = _auth.currentUser;
+      if (user != null) {
+        await user.updatePassword(newPassword);
+        await user.reload(); // Refresh the user's data
+        print("Password updated successfully.");
+      } else {
+        print("No user is currently logged in.");
+      }
+    } catch (e) {
+      print("Error updating password: $e");
+      throw Exception('Failed to update password');
+    }
+  }
+Future<void> reauthenticateUser(String password) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null && user.email != null) {
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: password,
+    );
+
+    await user.reauthenticateWithCredential(credential);
+  } else {
+    throw FirebaseAuthException(
+      code: 'no-user',
+      message: 'No user is currently signed in.',
+    );
+  }
+}
+
 
   // Connexion d'un utilisateur avec son email et mot de passe
 Future<User?> signInWithEmailAndPassword(String email, String password) async {
