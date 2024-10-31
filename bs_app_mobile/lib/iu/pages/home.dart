@@ -1,5 +1,5 @@
 import 'package:bs_app_mobile/iu/pages/demande.dart';
-import 'package:bs_app_mobile/iu/pages/don.dart';
+import 'package:bs_app_mobile/iu/pages/hematologie.dart';
 import 'package:bs_app_mobile/iu/pages/home_content.dart';
 import 'package:bs_app_mobile/iu/pages/list_centre.dart';
 
@@ -18,7 +18,7 @@ class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   final List<Widget> pages = [
     const HomePageContent(),
-    const DonPage(),
+    const Hematologie(),
     const DemandPage(),
     const ListCentrePage(),
     const ProfPage(),
@@ -70,8 +70,8 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.home),
           ),
           BottomNavigationBarItem(
-            label: 'Don',
-            icon: Icon(Icons.volunteer_activism),
+            label: 'Maladie',
+            icon: Icon(Icons.bloodtype),
           ),
           BottomNavigationBarItem(
             label: 'Demande',

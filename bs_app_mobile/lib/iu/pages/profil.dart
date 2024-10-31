@@ -84,12 +84,6 @@ class _ProfPageState extends State<ProfPage> {
                         ),
                         _buildInfoRow(
                           context,
-                          Icons.cake,
-                          "Date de naissance",
-                          userInfo!['dateNaissance'],
-                        ),
-                        _buildInfoRow(
-                          context,
                           Icons.bloodtype,
                           "Groupe sanguin",
                           userInfo!['groupeSanguin'],

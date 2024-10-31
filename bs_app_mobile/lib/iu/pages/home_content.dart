@@ -1,10 +1,6 @@
-import 'package:bs_app_mobile/iu/pages/centre.dart';
-import 'package:bs_app_mobile/iu/pages/historique_demande.dart';
-import 'package:bs_app_mobile/iu/pages/historique_don.dart';
+
 import 'package:bs_app_mobile/iu/pages/list_centre.dart';
 import 'package:bs_app_mobile/iu/pages/liste_demande.dart';
-import 'package:bs_app_mobile/iu/pages/localisation.dart';
-import 'package:bs_app_mobile/iu/pages/notification.dart';
 import 'package:bs_app_mobile/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
@@ -25,7 +21,6 @@ class HomePageContent extends StatelessWidget {
                 const SizedBox(height: 10,),
               _voirSection(),  
               _urgenceSection(context),
-              _historiqueSection(context),
           ],
         ),
       )
@@ -122,7 +117,7 @@ class HomePageContent extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceAround, // Pour espacer les containers
       children: [
         _urgenceContainer(
-          'Demandes ',
+          'Demandes urgents',
           'assets/images/urgence.png', // Remplace avec ton image
           () {
             // Naviguer vers la première page d'urgence
@@ -151,8 +146,8 @@ class HomePageContent extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 130,
-        height: 160, // Largeur fixe pour les containers
+        width: 160,
+        height: 200, // Largeur fixe pour les containers
         padding: const EdgeInsets.all(10),
         margin: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -185,35 +180,6 @@ class HomePageContent extends StatelessWidget {
   }
 }
 
- _historiqueSection(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround, // Pour espacer les containers
-      children: [
-        _historiqueContainer(
-          'Historique don',
-          'assets/images/demande.png', // Remplace avec ton image
-          () {
-            // Naviguer vers la première page d'urgence
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const HistoriqueDonPage()),
-            );
-          },
-        ),
-        _historiqueContainer(
-          'Historique demande',
-          'assets/images/histdon.png', // Remplace avec ton image
-          () {
-            // Naviguer vers la page des centres
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const HistoriqueDemandePage()),
-            );
-          },
-        ),
-      ],
-    );
-  }
 
   Widget _historiqueContainer(String title, String imagePath, VoidCallback onTap) {
     return GestureDetector(

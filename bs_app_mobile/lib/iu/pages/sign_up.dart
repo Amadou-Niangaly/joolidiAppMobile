@@ -1,10 +1,7 @@
-
-import 'package:bs_app_mobile/iu/pages/home.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Pour l'authentification Firebase
 import 'package:bs_app_mobile/services/auth_service.dart';
-import 'package:intl/intl.dart';
-
+import 'home.dart'; // Modifier pour votre importation réelle
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -14,24 +11,20 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  // Déclaration des TextEditingController pour capturer les entrées utilisateur
   final TextEditingController _nomController = TextEditingController();
   final TextEditingController _prenomController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _telephoneController = TextEditingController();
-  final TextEditingController _dateNaissanceController = TextEditingController(); // Ajout du contrôleur pour la date de naissance
-  String? _selectedBloodGroup; // Variable pour stocker le groupe sanguin sélectionné
+  String? _selectedBloodGroup;
 
-  // Service Firebase
   final FirebaseAuthService _firebaseAuthService = FirebaseAuthService();
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        appBar: AppBar(
-        ),
+        appBar: AppBar(),
         body: SingleChildScrollView(
           child: Container(
             margin: const EdgeInsets.all(24),
@@ -69,6 +62,7 @@ class _SignUpPageState extends State<SignUpPage> {
         TextField(
           controller: _nomController,
           decoration: InputDecoration(
+            labelText: "Nom",
             hintText: "Nom",
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
@@ -83,6 +77,7 @@ class _SignUpPageState extends State<SignUpPage> {
         TextField(
           controller: _prenomController,
           decoration: InputDecoration(
+            labelText: "Prenom",
             hintText: "Prenom",
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
@@ -97,6 +92,7 @@ class _SignUpPageState extends State<SignUpPage> {
         TextField(
           controller: _emailController,
           decoration: InputDecoration(
+            labelText: "Email",
             hintText: "Email",
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
@@ -111,6 +107,7 @@ class _SignUpPageState extends State<SignUpPage> {
         TextField(
           controller: _passwordController,
           decoration: InputDecoration(
+            labelText: "Mot de passe",
             hintText: "Password",
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
@@ -126,6 +123,7 @@ class _SignUpPageState extends State<SignUpPage> {
         TextField(
           controller: _telephoneController,
           decoration: InputDecoration(
+            labelText: "Telephone",
             hintText: "Numéro de téléphone",
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
@@ -136,37 +134,7 @@ class _SignUpPageState extends State<SignUpPage> {
           ),
         ),
         const SizedBox(height: 20),
-        // Date de naissance (avec showDatePicker)
-        TextField(
-          controller: _dateNaissanceController,
-          decoration: InputDecoration(
-            hintText: "Date de naissance",
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: BorderSide.none,
-            ),
-            fillColor: Theme.of(context).hintColor,
-            filled: true,
-          ),
-          readOnly: true, // Empêche la saisie manuelle
-          onTap: () async {
-            // Affiche le sélecteur de date
-            DateTime? pickedDate = await showDatePicker(
-              context: context,
-              initialDate: DateTime.now(),
-              firstDate: DateTime(1900), // Date minimale
-              lastDate: DateTime.now(), // Date maximale
-            );
-
-            if (pickedDate != null) {
-              // Formate la date et la met dans le TextField
-              String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
-              setState(() {
-                _dateNaissanceController.text = formattedDate;
-              });
-            }
-          },
-        ),
+       
         const SizedBox(height: 20),
         // Liste déroulante pour le groupe sanguin
         DropdownButtonFormField<String>(
@@ -180,6 +148,7 @@ class _SignUpPageState extends State<SignUpPage> {
             );
           }).toList(),
           decoration: InputDecoration(
+            labelText: "Groupe Sanguin",
             hintText: "Groupe Sanguin",
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
@@ -190,14 +159,14 @@ class _SignUpPageState extends State<SignUpPage> {
           ),
           onChanged: (String? newValue) {
             setState(() {
-              _selectedBloodGroup = newValue; // Mise à jour du groupe sanguin sélectionné
+              _selectedBloodGroup = newValue;
             });
           },
         ),
         const SizedBox(height: 24),
         // Bouton S'inscrire
         ElevatedButton(
-          onPressed: _signUp, // Méthode d'inscription appelée lors du clic
+          onPressed: _signUp,
           child: const Text(
             "S'inscrire",
             style: TextStyle(fontSize: 20, color: Color(0xFFFFFFFF)),
@@ -212,7 +181,7 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-// Méthode pour gérer l'inscription
+// Méthode pour gérer l'inscription avec validation de l'email et du mot de passe
 Future<void> _signUp() async {
   String email = _emailController.text.trim();
   String password = _passwordController.text.trim();
@@ -220,17 +189,28 @@ Future<void> _signUp() async {
   String prenom = _prenomController.text.trim();
   String numeroTelephone = _telephoneController.text.trim();
   String? groupeSanguin = _selectedBloodGroup;
-  String dateNaissance = _dateNaissanceController.text.trim(); // Si tu utilises un TextEditingController pour la date
+
+  // Validation de l'email
+  final emailRegex = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$");
+  if (!emailRegex.hasMatch(email)) {
+    _showErrorDialog("Adresse e-mail invalide.");
+    return;
+  }
+
+  // Validation du mot de passe
+  if (password.length < 6) {
+    _showErrorDialog("Le mot de passe doit comporter au moins 6 caractères.");
+    return;
+  }
 
   if (email.isNotEmpty &&
       password.isNotEmpty &&
       nom.isNotEmpty &&
       prenom.isNotEmpty &&
       numeroTelephone.isNotEmpty &&
-      groupeSanguin != null &&
-      dateNaissance.isNotEmpty) {
+      groupeSanguin != null 
+  ) {
     try {
-      // Appel au service Firebase pour l'inscription
       User? user = await _firebaseAuthService.signUp(
         email: email,
         password: password,
@@ -238,60 +218,46 @@ Future<void> _signUp() async {
         prenom: prenom,
         numeroTelephone: numeroTelephone,
         groupeSanguin: groupeSanguin,
-        dateNaissance: dateNaissance,
+    
       );
 
       if (user != null) {
-        // Réinitialiser les champs après une soumission réussie
         _nomController.clear();
         _prenomController.clear();
         _emailController.clear();
         _passwordController.clear();
         _telephoneController.clear();
-        _dateNaissanceController.clear(); // Réinitialiser la date de naissance
         setState(() {
-          _selectedBloodGroup = null; // Réinitialiser le groupe sanguin
+          _selectedBloodGroup = null;
         });
 
-        // Redirection ou autres actions après une inscription réussie
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomePage()),
         );
       }
     } on FirebaseAuthException catch (e) {
-      // Affichage des erreurs
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Erreur d'inscription"),
-          content: Text(e.message ?? "Une erreur s'est produite."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("OK"),
-            ),
-          ],
-        ),
-      );
+      _showErrorDialog(e.message ?? "Une erreur s'est produite.");
     }
   } else {
-    // Gestion des champs non remplis
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Champs manquants"),
-        content: const Text("Veuillez remplir tous les champs."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
+    _showErrorDialog("Veuillez remplir tous les champs.");
   }
 }
 
+void _showErrorDialog(String message) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Erreur"),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("OK"),
+        ),
+      ],
+    ),
+  );
+}
 
 }

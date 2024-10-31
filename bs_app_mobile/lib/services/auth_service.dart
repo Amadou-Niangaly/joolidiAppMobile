@@ -16,7 +16,7 @@ class FirebaseAuthService {
     required String prenom,
     required String numeroTelephone,
     required String groupeSanguin,
-    required String dateNaissance,
+
   }) async {
     try {
       UserCredential credential = await _auth.createUserWithEmailAndPassword(
@@ -33,7 +33,6 @@ class FirebaseAuthService {
           'email': email,
           'numeroTelephone': numeroTelephone,
           'groupeSanguin': groupeSanguin,
-          'dateNaissance': dateNaissance,
           'role': 'user',
           'uid': user.uid,
           'dateInscription': FieldValue.serverTimestamp(),

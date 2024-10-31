@@ -1,4 +1,4 @@
-import 'package:bs_app_mobile/iu/pages/profil.dart';
+
 import 'package:flutter/material.dart';
 import 'package:bs_app_mobile/services/auth_service.dart'; // Remplacez avec votre service d'authentification
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -31,7 +31,6 @@ class _EditProfilPageState extends State<EditProfilPage> {
       nomController.text = userInfo?['nom'];
       prenomController.text = userInfo?['prenom'];
       groupeSanguinController.text = userInfo?['groupeSanguin'];
-      dateNaissanceController.text = userInfo?['dateNaissance'];
     });
   }
 
@@ -45,7 +44,6 @@ Future<void> _updateUserInfo() async {
         'nom': nomController.text,
         'prenom': prenomController.text,
         'groupeSanguin': groupeSanguinController.text,
-        'dateNaissance': dateNaissanceController.text,
       });
       print("User information updated in Firestore.");
 
@@ -165,31 +163,6 @@ Future<String> _promptForPassword() async {
               ),
                 const SizedBox(height: 20),
               TextFormField(
-                controller: dateNaissanceController,
-                decoration: InputDecoration(labelText: 'Date de Naissance',
-                 border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: BorderSide.none,
-            ),
-               fillColor: Theme.of(context).hintColor,
-            filled: true,
-                ),
-                onTap: () async {
-                  FocusScope.of(context).requestFocus(FocusNode()); // Empêche l'apparition du clavier
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime.now(),
-                  );
-                  if (date != null) {
-                    dateNaissanceController.text = "${date.day}/${date.month}/${date.year}";
-                  }
-                },
-                validator: (value) => value == null || value.isEmpty ? 'Entrez une date de naissance' : null,
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
                 controller: passwordController,
                 decoration:  InputDecoration(labelText: 'Nouveau mot de passe',
                 border: OutlineInputBorder(
@@ -211,7 +184,7 @@ Future<String> _promptForPassword() async {
               ElevatedButton(
                 onPressed: _updateUserInfo,
                 
-                child: Text('Enregistrer les modifications',style: TextStyle(fontWeight: FontWeight.bold,color: Colors.white),),
+                child: Text('Enregistrer les modifications',style: TextStyle(fontWeight: FontWeight.bold,color: Colors.white,fontSize: 18),),
                 style: ElevatedButton.styleFrom(
                      shape: const StadiumBorder(),
             padding: const EdgeInsets.symmetric(vertical: 16),
