@@ -69,10 +69,9 @@ class NotificationPage extends StatelessWidget {
                 return Center(child: Text('Aucune notification.'));
               }
 
-              final notifications = snapshot.data!.docs
-                  .map((doc) => NotificationModel.fromMap(doc.data() as Map<String, dynamic>))
-                  .where((notification) => notification.userId == currentUserId)
-                  .toList();
+           final notifications = snapshot.data!.docs
+    .map((doc) => NotificationModel.fromMap(doc.data() as Map<String, dynamic>))
+    .toList();
 
               if (notifications.isEmpty) {
                 return Center(child: Text('Aucune notification pour l’utilisateur.'));
